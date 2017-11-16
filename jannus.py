@@ -99,9 +99,9 @@ def saveLeagueMatchesAsKeyId():
 		#dropping unneccesary information from league matches
 		keys_to_acquire = matchAcquiringKeyList();
 
-		for lm in league_matches:
-			matches_pbar.next()
-			if not os.path.exists('./data/json/league/' + re.sub(r'[^\x00-\x7F]+','', getLeagueIdAsKeyNameList(l_id)) ):
+		if not os.path.exists('./data/json/league/' + re.sub(r'[^\x00-\x7F]+','', getLeagueIdAsKeyNameList(l_id)) ):
+			for lm in league_matches:
+				matches_pbar.next()
 				try:	
 					league_match_id['matches'].append(str(lm['match_id']))
 				except KeyError:
