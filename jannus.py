@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import re
+import random
 from progress.bar import Bar
 
 #logger config
@@ -16,177 +17,230 @@ logger = logging.getLogger('jannus')
 d2api = dota2api.Initialise('6FCA7ABF90D69EA8377C7991168FEF08')
 
 def createFolder(directory):
-	if not os.path.exists(directory):
-		os.makedirs(directory)
+    if not os.path.exists(directory):
+        os.makedirs(directory)
 
 def deleteKey(leagueObj, key):
-	del leagueObj[key]
+    del leagueObj[key]
 
 def deletionKeyList():
-	return {'description','itemdef','tournament_url'}
+    return {'description','itemdef','tournament_url'}
 
 def matchAcquiringKeyList():
-	return {'season',
-		'radiant_win',
-		'duration',
-		'start_time',
-		'match_id',
-		'match_seq_num',
-		'tower_status_radiant',
-		'tower_status_dire',
-		'barracks_status_radiant',
-		'barracks_status_dire',
-		'cluster',
-		'cluster_name',
-		'first_blood_time',
-		'lobby_type',
-		'lobby_name',
-		'human_players',
-		'leagueid',
-		'positive_votes',
-		'negative_votes',
-		'game_mode',
-		'game_mode_name',
-		'radiant_captain',
-		'dire_captain',
-		'pick_bans'}
+    return {'season',
+        'radiant_win',
+        'duration',
+        'start_time',
+        'match_id',
+        'match_seq_num',
+        'tower_status_radiant',
+        'tower_status_dire',
+        'barracks_status_radiant',
+        'barracks_status_dire',
+        'cluster',
+        'cluster_name',
+        'first_blood_time',
+        'lobby_type',
+        'lobby_name',
+        'human_players',
+        'leagueid',
+        'positive_votes',
+        'negative_votes',
+        'game_mode',
+        'game_mode_name',
+        'radiant_captain',
+        'dire_captain',
+        'pick_bans'}
 
 def saveLeagueIdAsKeyNameList():
-	#getting leagues list
-	leagues = d2api.get_league_listing()
-	leagues = leagues['leagues']
-	id_name_result = {}
-	#removing unnecessary information
-	for league in leagues:
-		id_name_result[league['leagueid']] = league['name']
-	#saving league data
-	if not os.path.exists('../data'):
-		os.makedirs('../data')
-	with open('../data/league_id_as_key_name.txt', 'w') as league_file:
-		json.dump(id_name_result, league_file)
-		logging.info('Saving league_id_as_key_name.txt')
+    #getting leagues list
+    leagues = d2api.get_league_listing()
+    leagues = leagues['leagues']
+    id_name_result = {}
+    #removing unnecessary information
+    for league in leagues:
+        id_name_result[league['leagueid']] = league['name']
+    #saving league data
+    if not os.path.exists('../data'):
+        os.makedirs('../data')
+    with open('../data/league_id_as_key_name.txt', 'w') as league_file:
+        json.dump(id_name_result, league_file)
+        logging.info('Saving league_id_as_key_name.txt')
 
 def getLeagueIdAsKeyNameList(id):
-	#getting leagues list
-	leagues = d2api.get_league_listing()
-	leagues = leagues['leagues']
-	id_name_result = {}
-	#removing unnecessary information
-	for league in leagues:
-		if(league['leagueid'] == id):
-			id_name_result = league['name']
-	
-	return id_name_result
+    #getting leagues list
+    leagues = d2api.get_league_listing()
+    leagues = leagues['leagues']
+    id_name_result = {}
+    #removing unnecessary information
+    for league in leagues:
+        if(league['leagueid'] == id):
+            id_name_result = league['name']
+    
+    return id_name_result
 
-def saveLeagueMatchesAsKeyId():
-	#getting leagues list
-	leagues = d2api.get_league_listing()
-	leagues = leagues['leagues']
-	league_pbar = Bar('League Progress', max = len(leagues))
+def saveLeagueMatchesAsKeyId(league_num):
+    #getting leagues list
+    leagues = d2api.get_league_listing()
+    leagues = leagues['leagues']
+    league_pbar = Bar('League Progress', max = len(leagues))
+    league_data_subset = []
 
-	# getting all league matches
-	for m in leagues:
-		l_id = m['leagueid']
-		league_pbar.next()
-		logger.info('Changing league...')
-		league_matches = d2api.get_match_history(league_id = l_id)['matches']
-		matches_pbar = Bar('Match Progress', max = len(league_matches))
-		league_match_id = {}
-		league_match_id['id'] = l_id
-		league_match_id['matches'] = []
-		#dropping unneccesary information from league matches
-		keys_to_acquire = matchAcquiringKeyList();
+    for num in range(league_num):
+        league_data_subset.append(random.choice(leagues))
 
-		if not os.path.exists('../data/json/league/' + re.sub(r'[^\x00-\x7F]+','', getLeagueIdAsKeyNameList(l_id)) ):
-			for lm in league_matches:
-				matches_pbar.next()
-				try:	
-					league_match_id['matches'].append(str(lm['match_id']))
-				except KeyError:
-					logger.info('keyError' + str(l_id)  + '\t' + str(lm['match_id']))
+    match_dataset = []
+    # getting all league matches
+    for m in league_data_subset:
+        l_id = m['leagueid']
+        league_pbar.next()
+        logger.info('Changing league...')
+        league_matches = d2api.get_match_history(league_id = l_id)['matches']
+        matches_pbar = Bar('Match Progress', max = len(league_matches))
+        league_match_id = {}
+        league_match_id['id'] = l_id
+        league_match_id['matches'] = []
+        #dropping unneccesary information from league matches
+        keys_to_acquire = matchAcquiringKeyList();
 
-				try:		
-					if(getLeagueIdAsKeyNameList(l_id) != None):
-						league_name = getLeagueIdAsKeyNameList(l_id)
-						match_file_path = '../data/json/league/'+ str(league_name)
-						createFolder(match_file_path)
+        for lm in league_matches:
+            matches_pbar.next()
+            try:    
+                league_match_id['matches'].append(str(lm['match_id']))
+            except KeyError:
+                logger.info('keyError' + str(l_id)  + '\t' + str(lm['match_id']))
 
-						with open('../data/json/league/' + re.sub(r'[^\x00-\x7F]+','', league_name) + '/matches.txt', 'w') as match_file:
-							json.dump(league_match_id, match_file)
+        match_dataset.append(league_match_id)
 
-				except:		
-					#creating folder structure
-					if not os.path.exists('../data/json/league/others'):
-						os.makedirs('../data/json/league/others')
-					with open('../data/json/league/others/' + str(l_id) + '.txt', 'w') as match_file:
-						json.dump(league_match_id, match_file)
-		else:
-			logger.info(re.sub(r'[^\x00-\x7F]+','', getLeagueIdAsKeyNameList(l_id)) + ' already exists.')
+    return(match_dataset)
+
+'''             try:        
+                    if(getLeagueIdAsKeyNameList(l_id) != None):
+                        league_name = getLeagueIdAsKeyNameList(l_id)
+                        match_file_path = '../data/json/league/'+ str(league_name)
+                        createFolder(match_file_path)
+
+                        with open('../data/json/league/' + re.sub(r'[^\x00-\x7F]+','', league_name) + '/matches.txt', 'w') as match_file:
+                            json.dump(league_match_id, match_file)
+
+                except:     
+                    #creating folder structure
+                    if not os.path.exists('../data/json/league/others'):
+                        os.makedirs('../data/json/league/others')
+                    with open('../data/json/league/others/' + str(l_id) + '.txt', 'w') as match_file:
+                        json.dump(league_match_id, match_file)
+        else:
+            logger.info(re.sub(r'[^\x00-\x7F]+','', getLeagueIdAsKeyNameList(l_id)) + ' already exists.')'''
 
 
-def saveMatchesAsKeyId():
-	#getting match list
-	league_directory_paths = os.listdir('../data/json/league')
+def saveMatchesAsKeyId(match_dataset):
 
-	league_pbar = Bar('League Progress', max = len(league_directory_paths))
+    league_pbar = Bar('League Progress', max = len(match_dataset))
 
-	# getting all league matches
-	for league_directory in league_directory_paths:
-		league_pbar.next()
-		match_directory_list = os.listdir('../data/json/league/' + league_directory)
-    		with open('../data/json/league/' + league_directory + '/' + match_directory_list[0], 'r') as m_file:
-    			league_matches_list = json.loads(m_file.read())
-			matches_pbar = Bar('Match Progress', max = len(league_matches_list['matches']))
-    			for matchid in league_matches_list['matches']:
-    				match_json = d2api.get_match_details(match_id = matchid)
-    				matches_pbar.next()
-   				match_filename = match_json['match_id']
-				match_file_path = '../data/json/match/'+ league_directory + '/' +re.sub(r'[^\x00-\x7F]+','', matchid)
-				createFolder(match_file_path)
+    picks_ban_data = []
+    logger.info('match datatset %s', len(match_dataset))
+    # getting all league matches
+    for league_data in match_dataset:
+            league_pbar.next()
+            matches_pbar = Bar('Match Progress', max = len(league_data['matches']))
+            for matchid in league_data['matches']:
+                #logger.info(matches_in_league)
+                try:
+                    match_json = d2api.get_match_details(match_id = matchid)
+                except:
+                    pass
 
-				with open('../data/json/match/' + league_directory + '/' +re.sub(r'[^\x00-\x7F]+','', matchid) + '/pick_bans.txt', 'w') as match_file:
-					match_picks_bans = match_json['picks_bans']
-					json.dump(match_picks_bans, match_file)
+                matches_pbar.next()
+                try:
+                    match = {}
+                    match['pb'] = match_json['picks_bans']                  
+                    match['radiant_win'] = match_json['radiant_win']
+                    picks_ban_data.append(match)
+                except KeyError:
+                    logger.info('Picks ban not found for match id : %s', str(matchid))
+
+    return picks_ban_data
+
+def getMatchPicksBansAsTeams(match_details):    
+
+    pick_ban_result = []
+
+    for match_entry in match_details:
+        match_pick_ban_element = {}
+        match_pick_ban_element['radiant'] = {}
+        match_pick_ban_element['dire'] = {}
+        match_pick_ban_element['victory'] = match_entry['radiant_win']
+        match_pick_ban_element['radiant']['picks'] = []
+        match_pick_ban_element['radiant']['bans'] =  []
+        match_pick_ban_element['dire']['picks'] = []
+        match_pick_ban_element['dire']['bans'] = []
+        for pick_bans in match_entry['pb']:
+            #logger.info(pick_bans)
+            
+            hero_element ={}
+            if(pick_bans['team'] == 0):
+                if(pick_bans['is_pick'] == True):
+                    hero_element[str(pick_bans['hero_id'])] = pick_bans['order']
+                    match_pick_ban_element['radiant']['picks'].append(hero_element)
+            else:
+                if(pick_bans['is_pick'] == True):
+                    hero_element[str(pick_bans['hero_id'])] = pick_bans['order']
+                    match_pick_ban_element['dire']['picks'].append(hero_element)
+
+            if(pick_bans['team'] == 0):
+                if(pick_bans['is_pick'] == False):
+                    hero_element[str(pick_bans['hero_id'])] = pick_bans['order']
+                    match_pick_ban_element['radiant']['bans'].append(hero_element)
+            else:
+                if(pick_bans['is_pick'] == False):
+                    hero_element[str(pick_bans['hero_id'])] = pick_bans['order']
+                    match_pick_ban_element['dire']['bans'].append(hero_element)
+
+        pick_ban_result.append(match_pick_ban_element)
+
+    logger.info(pick_ban_result)
+    return pick_ban_result
+
 
 
 
 '''
-		l_id = m['leagueid']
-		league_pbar.next()
-		logger.info('Changing league...')
-		league_matches = d2api.get_match_history(league_id = l_id)['matches']
-		matches_pbar = Bar('Match Progress', max = len(league_matches))
-		league_match_id = {}
-		league_match_id['id'] = l_id
-		league_match_id['matches'] = []
-		#dropping unneccesary information from league matches
-		keys_to_acquire = matchAcquiringKeyList();
+        l_id = m['leagueid']
+        league_pbar.next()
+        logger.info('Changing league...')
+        league_matches = d2api.get_match_history(league_id = l_id)['matches']
+        matches_pbar = Bar('Match Progress', max = len(league_matches))
+        league_match_id = {}
+        league_match_id['id'] = l_id
+        league_match_id['matches'] = []
+        #dropping unneccesary information from league matches
+        keys_to_acquire = matchAcquiringKeyList();
 
-		if not os.path.exists('../data/json/league/' + re.sub(r'[^\x00-\x7F]+','', getLeagueIdAsKeyNameList(l_id)) ):
-			for lm in league_matches:
-				matches_pbar.next()
-				try:	
-					league_match_id['matches'].append(str(lm['match_id']))
-				except KeyError:
-					logger.info('keyError' + str(l_id)  + '\t' + str(lm['match_id']))
+        if not os.path.exists('../data/json/league/' + re.sub(r'[^\x00-\x7F]+','', getLeagueIdAsKeyNameList(l_id)) ):
+            for lm in league_matches:
+                matches_pbar.next()
+                try:    
+                    league_match_id['matches'].append(str(lm['match_id']))
+                except KeyError:
+                    logger.info('keyError' + str(l_id)  + '\t' + str(lm['match_id']))
 
-				try:		
-					if(getLeagueIdAsKeyNameList(l_id) != None):
-						league_name = getLeagueIdAsKeyNameList(l_id)
-						match_file_path = '../data/json/league/'+ str(league_name)
-						createFolder(match_file_path)
+                try:        
+                    if(getLeagueIdAsKeyNameList(l_id) != None):
+                        league_name = getLeagueIdAsKeyNameList(l_id)
+                        match_file_path = '../data/json/league/'+ str(league_name)
+                        createFolder(match_file_path)
 
-						with open('../data/json/league/' + re.sub(r'[^\x00-\x7F]+','', league_name) + '/matches.txt', 'w') as match_file:
-							json.dump(league_match_id, match_file)
+                        with open('../data/json/league/' + re.sub(r'[^\x00-\x7F]+','', league_name) + '/matches.txt', 'w') as match_file:
+                            json.dump(league_match_id, match_file)
 
-				except:		
-					#creating folder structure
-					if not os.path.exists('../data/json/league/others'):
-						os.makedirs('../data/json/league/others')
-					with open('../data/json/league/others/' + str(l_id) + '.txt', 'w') as match_file:
-						json.dump(league_match_id, match_file)
-		else:
-			logger.info(re.sub(r'[^\x00-\x7F]+','', getLeagueIdAsKeyNameList(l_id)) + ' already exists.')
+                except:     
+                    #creating folder structure
+                    if not os.path.exists('../data/json/league/others'):
+                        os.makedirs('../data/json/league/others')
+                    with open('../data/json/league/others/' + str(l_id) + '.txt', 'w') as match_file:
+                        json.dump(league_match_id, match_file)
+        else:
+            logger.info(re.sub(r'[^\x00-\x7F]+','', getLeagueIdAsKeyNameList(l_id)) + ' already exists.')
 '''
 
-saveMatchesAsKeyId()
+getMatchPicksBansAsTeams(saveMatchesAsKeyId(saveLeagueMatchesAsKeyId(25)))
