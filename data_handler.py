@@ -38,6 +38,13 @@ def get_data(ratio):
         train_data = data[:train_len]
         test_data = data[train_len:]
 
+        for index in range(len(train_data)):
+            print(train_data[index])
+            convert_to_one_hot(train_data[index])
+
+        print(train_data[0], train_data[1])
+        # print train_data[0],test_data[0]
+
         if not (os.path.isfile('./data/test_data.npy')):
             with open('./data/test_data.npy', 'w') as test_file:
                 np.save(test_file, test_data)
@@ -47,6 +54,31 @@ def get_data(ratio):
                 np.save(train_file, train_data)
 
     return train_data,test_data
+
+def convert_to_one_hot(data):
+    print(data)
+    one_hot_vector = []
+    for hero in data:
+        for hval in hero:
+            one_hot = []
+            for val in hval:
+                temp_data = [0.] * 4
+                if(val == 0.):
+                    temp_data = [1., 0., 0., 0.]
+                if(val == 1.):
+                    temp_data = [0., 1., 0., 0.]
+                if(val == 2.):
+                    temp_data = [0., 0., 1., 0,]
+                if(val == 3.):
+                    temp_data = [0., 0., 0., 1.]
+
+                # np.concatenate(np.asarray(one_hot), np.asarray(temp_data))
+                one_hot.append(temp_data)
+                # val = int(val)
+            one_hot = np.asarray(one_hot, dtype = np.float32).flatten()
+            # print(hval, one_hot)
+            one_hot_vector.append(one_hot)
+    print(np.asarray(one_hot_vector))
 
 
 get_data(ratio = 0.7)
